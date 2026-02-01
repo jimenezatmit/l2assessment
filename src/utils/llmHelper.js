@@ -23,32 +23,39 @@ export async function categorizeMessage(message) {
       model: "llama-3.3-70b-versatile",
       messages: [
         {
+          role: "system",
+        content: `You are a customer support triage assistant for Relay AI, a subscription-based customer operations platform.
+
+Your job is to categorize incoming customer messages into ONE of these exact categories:
+- "Billing Issue" - payment problems, subscription changes (upgrades/downgrades/cancellations), billing questions, refunds, invoices, account access issues related to payment
+- "Technical Problem" - bugs, errors, crashes, features not working, loading issues, blank screens, system problems
+- "Feature Request" - suggestions for new features, improvements, enhancements
+- "General Inquiry" - questions about how to use the product, account questions, general information
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "category": "one of the four categories above",
+  "reasoning": "2-3 sentence explanation of why you chose this category"
+}
+
+Do not include any other text before or after the JSON.`
+        },
+        {
           role: "user",
-          content: `Categorize this customer support message: ${message}`
+          content: `Categorize this customer support message:\n\n"${message}"`
         }
       ],
-      temperature: 0.7,
+      temperature: 0.3, // Lower temperature for more consistent categorization
     });
 
-    const content = response.choices[0].message.content;
+    const content = response.choices[0].message.content.trim();
     
-    const lines = content.split('\n');
-    let category = "Unknown";
-    let reasoning = content;
-    
-    if (content.toLowerCase().includes('billing')) {
-      category = "Billing Issue";
-    } else if (content.toLowerCase().includes('technical') || content.toLowerCase().includes('bug')) {
-      category = "Technical Problem";
-    } else if (content.toLowerCase().includes('feature')) {
-      category = "Feature Request";
-    } else if (content.toLowerCase().includes('inquiry') || content.toLowerCase().includes('question')) {
-      category = "General Inquiry";
-    }
+    // Parse the JSON response
+    const parsed = JSON.parse(content);
     
     return {
-      category,
-      reasoning: content
+      category: parsed.category,
+      reasoning: parsed.reasoning
     };
   } catch (error) {
     console.warn('Groq API failed, using mock response:', error.message);
