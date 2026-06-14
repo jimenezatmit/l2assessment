@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { normalizeCategory } from '../utils/templates'
+import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function HomePage() {
   const [stats, setStats] = useState({ total: 0, today: 0 })
@@ -10,7 +11,8 @@ function HomePage() {
     // Load stats from localStorage
     const history = JSON.parse(localStorage.getItem('triageHistory') || '[]').map(item => ({
       ...item,
-      category: normalizeCategory(item.category)
+      category: normalizeCategory(item.category),
+      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency)
     }))
     localStorage.setItem('triageHistory', JSON.stringify(history))
     const today = new Date().toDateString()

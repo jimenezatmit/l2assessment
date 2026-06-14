@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { normalizeCategory } from '../utils/templates'
+import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function HistoryPage() {
   const [history, setHistory] = useState([])
@@ -15,7 +16,8 @@ function HistoryPage() {
     const savedHistory = JSON.parse(localStorage.getItem('triageHistory') || '[]')
     const normalizedHistory = savedHistory.map(item => ({
       ...item,
-      category: normalizeCategory(item.category)
+      category: normalizeCategory(item.category),
+      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency)
     }))
     setHistory(normalizedHistory)
     localStorage.setItem('triageHistory', JSON.stringify(normalizedHistory))

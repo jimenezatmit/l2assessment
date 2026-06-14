@@ -39,3 +39,7 @@ export function calculateUrgency(message) {
   if (urgencyScore < 30) return "Low"
   return "Medium"
 }
+
+export function normalizeUrgency(category, urgency) {
+  return category === 'Contact Customer' ? 'High' : urgency
+}
