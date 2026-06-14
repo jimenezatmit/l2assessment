@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { normalizeCategory } from '../utils/templates'
 
 function DashboardPage() {
   const [stats, setStats] = useState({
@@ -15,7 +16,11 @@ function DashboardPage() {
   }, [])
 
   const loadDashboardData = () => {
-    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
+    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]').map(item => ({
+      ...item,
+      category: normalizeCategory(item.category)
+    }))
+    localStorage.setItem('triageHistory', JSON.stringify(history))
     const today = new Date().toDateString()
     const todayMessages = history.filter(item => 
       new Date(item.timestamp).toDateString() === today

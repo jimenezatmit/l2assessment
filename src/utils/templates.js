@@ -7,7 +7,11 @@ const actionTemplates = {
   "Technical Problem": "Suggest user to restart their browser.",
   "General Inquiry": "Respond with FAQ link.",
   "Feature Request": "Ask user to check billing portal.",
-  "Unknown": "Review manually."
+  "Contact Customer": "Review manually."
+}
+
+export function normalizeCategory(category) {
+  return category === 'Unknown' ? 'Contact Customer' : category
 }
 
 /**

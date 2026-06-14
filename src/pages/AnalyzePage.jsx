@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
 import { calculateUrgency } from '../utils/urgencyScorer'
-import { getRecommendedAction } from '../utils/templates'
+import { getRecommendedAction, normalizeCategory } from '../utils/templates'
 
 function AnalyzePage() {
   const [message, setMessage] = useState('')
@@ -30,16 +30,17 @@ function AnalyzePage() {
     try {
       // Run categorization (LLM call)
       const { category, reasoning } = await categorizeMessage(message)
+      const normalizedCategory = normalizeCategory(category)
       
       // Calculate urgency (rule-based)
       const urgency = calculateUrgency(message)
       
       // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(category)
+      const recommendedAction = getRecommendedAction(normalizedCategory)
       
       const analysisResult = {
         message,
-        category,
+        category: normalizedCategory,
         urgency,
         recommendedAction,
         reasoning,

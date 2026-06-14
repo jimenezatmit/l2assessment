@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { normalizeCategory } from '../utils/templates'
 
 function HistoryPage() {
   const [history, setHistory] = useState([])
@@ -12,7 +13,12 @@ function HistoryPage() {
 
   const loadHistory = () => {
     const savedHistory = JSON.parse(localStorage.getItem('triageHistory') || '[]')
-    setHistory(savedHistory)
+    const normalizedHistory = savedHistory.map(item => ({
+      ...item,
+      category: normalizeCategory(item.category)
+    }))
+    setHistory(normalizedHistory)
+    localStorage.setItem('triageHistory', JSON.stringify(normalizedHistory))
   }
 
   const clearHistory = () => {
@@ -28,9 +34,9 @@ function HistoryPage() {
   
   const filteredHistory = filter === 'all' 
     ? sortedHistory 
-    : sortedHistory.filter(item => item.category === filter)
+    : sortedHistory.filter(item => normalizeCategory(item.category) === filter)
 
-  const categories = [...new Set(history.map(item => item.category))]
+  const categories = [...new Set(history.map(item => normalizeCategory(item.category)))]
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -118,7 +124,7 @@ function HistoryPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
-                        {item.category}
+                        {normalizeCategory(item.category)}
                       </span>
                       <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
                         item.urgency === 'High' ? 'bg-red-200 text-red-900' :
