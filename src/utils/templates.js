@@ -1,43 +1,33 @@
-/**
- * Recommendation Templates - Maps categories to recommended actions
- */
-
 const actionTemplates = {
-  "Billing Issue": "Ask user to check billing portal.",
-  "Technical Problem": "Suggest user to restart their browser.",
-  "General Inquiry": "Respond with FAQ link.",
-  "Feature Request": "Ask user to check billing portal.",
-  "Unknown": "Review manually."
+  "Billing Issue": "Verify the charge in Stripe, check the customer's subscription status, and respond with a clear explanation or issue a refund if warranted.",
+  "Technical Problem": "Reproduce the issue in a test environment, check recent deployment logs, and escalate to engineering if confirmed. Respond with an ETA.",
+  "General Inquiry": "Respond with the relevant help center article. If no article exists, draft a direct answer and flag for documentation.",
+  "Feature Request": "Log the request in the product feedback tracker with the customer's use case. Send an acknowledgment and set expectation that the team will review.",
+  "Churn Risk": "Flag for immediate Account Management outreach. Do not send an automated response — a human should contact this customer within the hour.",
+  "Positive Feedback": "Thank the customer and consider asking for a G2 or Capterra review. Share internally with the team.",
+  "Unknown": "Route to senior support agent for manual review."
+};
+
+const routingTeams = {
+  "Billing Team": "billing@relayai.com",
+  "Technical Support": "tech-support@relayai.com",
+  "Product Team": "product@relayai.com",
+  "General Support": "support@relayai.com",
+  "Account Management": "accounts@relayai.com"
+};
+
+export function getRecommendedAction(category) {
+  return actionTemplates[category] || actionTemplates["Unknown"];
 }
 
-/**
- * Get recommended action for a given category
- * 
- * @param {string} category - The message category
- * @param {string} urgency - The urgency level
- * @returns {string} - Recommended next step
- */
-export function getRecommendedAction(category, urgency) {
-  return actionTemplates[category] || "No recommendation available."
+export function getRoutingEmail(routing) {
+  return routingTeams[routing] || routingTeams["General Support"];
 }
 
-/**
- * Get all available categories
- * 
- * @returns {string[]} - List of categories
- */
 export function getAvailableCategories() {
-  return Object.keys(actionTemplates)
+  return Object.keys(actionTemplates);
 }
 
-/**
- * Determines if message should be escalated
- * 
- * @param {string} category - The message category
- * @param {string} urgency - The urgency level
- * @param {string} message - The original message
- * @returns {boolean} - Whether to escalate
- */
-export function shouldEscalate(category, urgency, message) {
-  return message.length > 100
+export function shouldEscalate(category, priority, urgencyFlag) {
+  return urgencyFlag === true || priority === "Critical" || category === "Churn Risk";
 }

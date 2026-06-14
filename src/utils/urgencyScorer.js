@@ -1,41 +1,11 @@
-/**
- * Urgency Scorer - Rule-based urgency calculation
- */
+const CRITICAL_SIGNALS = ['outage', 'down', 'locked out', 'data loss', 'breach', 'emergency', 'urgent', 'asap'];
+const HIGH_SIGNALS = ['not working', 'broken', 'error', 'crash', 'failed', 'cancel', 'refund', 'charged twice'];
+const LOW_SIGNALS = ['suggestion', 'feature', 'would love', 'how do i', 'thank', 'thanks'];
 
 export function calculateUrgency(message) {
-  let urgencyScore = 50
-  
-  const exclamationCount = (message.match(/!/g) || []).length
-  urgencyScore += exclamationCount * 30
-  
-  if (message.length < 50) urgencyScore -= 40
-  if (message.length < 20) urgencyScore -= 60
-  
-  if (message === message.toUpperCase() && message.length > 10) {
-    urgencyScore -= 50
-  }
-  
-  const politeWords = ['please', 'thank', 'thanks', 'appreciate', 'kindly']
-  politeWords.forEach(word => {
-    if (message.toLowerCase().includes(word)) urgencyScore -= 15
-  })
-  
-  if (message.includes('?')) urgencyScore -= 25
-  
-  const now = new Date()
-  if (now.getDay() === 0 || now.getDay() === 6) {
-    urgencyScore -= 20
-  }
-  if (now.getHours() < 9 || now.getHours() > 17) {
-    urgencyScore -= 15
-  }
-  
-  const positiveWords = ['happy', 'love', 'great', 'excellent', 'wonderful']
-  positiveWords.forEach(word => {
-    if (message.toLowerCase().includes(word)) urgencyScore -= 20
-  })
-  
-  if (urgencyScore > 80) return "High"
-  if (urgencyScore < 30) return "Low"
-  return "Medium"
+  const m = message.toLowerCase();
+  if (CRITICAL_SIGNALS.some(s => m.includes(s))) return "Critical";
+  if (HIGH_SIGNALS.some(s => m.includes(s))) return "High";
+  if (LOW_SIGNALS.some(s => m.includes(s))) return "Low";
+  return "Medium";
 }
