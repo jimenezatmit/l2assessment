@@ -17,38 +17,39 @@ const groq = new Groq({
  * @param {string} message - The customer support message
  * @returns {Promise<{category: string, reasoning: string}>}
  */
+const VALID_CATEGORIES = ["Billing Issue", "Technical Problem", "Feature Request", "General Inquiry"]
+
 export async function categorizeMessage(message) {
   try {
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         {
+          role: "system",
+          content: `You are a customer support triage assistant. Categorize the customer message into exactly one of these categories:
+- "Billing Issue": payment problems, invoice questions, charges, subscriptions, refunds, account cancellations
+- "Technical Problem": bugs, errors, crashes, slow performance, features not working
+- "Feature Request": suggestions for new features, product improvements, enhancements
+- "General Inquiry": general questions, information requests, how-to questions
+
+Respond with valid JSON only, no other text:
+{"category": "<exact category name>", "reasoning": "<one sentence explanation>"}`
+        },
+        {
           role: "user",
-          content: `Categorize this customer support message: ${message}`
+          content: message
         }
       ],
-      temperature: 0.7,
+      temperature: 0.3,
     });
 
-    const content = response.choices[0].message.content;
-    
-    const lines = content.split('\n');
-    let category = "Unknown";
-    let reasoning = content;
-    
-    if (content.toLowerCase().includes('billing')) {
-      category = "Billing Issue";
-    } else if (content.toLowerCase().includes('technical') || content.toLowerCase().includes('bug')) {
-      category = "Technical Problem";
-    } else if (content.toLowerCase().includes('feature')) {
-      category = "Feature Request";
-    } else if (content.toLowerCase().includes('inquiry') || content.toLowerCase().includes('question')) {
-      category = "General Inquiry";
-    }
-    
+    const content = response.choices[0].message.content.trim();
+    const parsed = JSON.parse(content);
+    const category = VALID_CATEGORIES.includes(parsed.category) ? parsed.category : "General Inquiry";
+
     return {
       category,
-      reasoning: content
+      reasoning: parsed.reasoning || content
     };
   } catch (error) {
     console.warn('Groq API failed, using mock response:', error.message);

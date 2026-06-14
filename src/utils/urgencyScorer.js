@@ -12,7 +12,7 @@ export function calculateUrgency(message) {
   if (message.length < 20) urgencyScore -= 60
   
   if (message === message.toUpperCase() && message.length > 10) {
-    urgencyScore -= 50
+    urgencyScore += 50
   }
   
   const politeWords = ['please', 'thank', 'thanks', 'appreciate', 'kindly']
@@ -21,15 +21,7 @@ export function calculateUrgency(message) {
   })
   
   if (message.includes('?')) urgencyScore -= 25
-  
-  const now = new Date()
-  if (now.getDay() === 0 || now.getDay() === 6) {
-    urgencyScore -= 20
-  }
-  if (now.getHours() < 9 || now.getHours() > 17) {
-    urgencyScore -= 15
-  }
-  
+
   const positiveWords = ['happy', 'love', 'great', 'excellent', 'wonderful']
   positiveWords.forEach(word => {
     if (message.toLowerCase().includes(word)) urgencyScore -= 20
