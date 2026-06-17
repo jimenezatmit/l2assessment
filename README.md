@@ -62,12 +62,19 @@ Support teams waste time manually reading and triaging customer messages. This t
 
 1. **Paste Message**: User pastes a customer support message into the text area
 2. **Analyze**: Click "Analyze Message" to process the input
-3. **Classification**: The app runs three processes in parallel:
-   - **Category Classification** (LLM): Uses Groq AI (Llama 3.3 70B) to categorize the message
-   - **Urgency Scoring** (Rule-based): Applies simple rules to determine urgency
-   - **Recommendation** (Template-based): Maps category to a recommended action
-4. **Display Results**: Shows category, urgency tag, recommended action, and AI reasoning
-5. **History**: All analyses are saved to localStorage and viewable in the History tab
+3. **Triage**: A single structured Groq call (Llama 3.3 70B, JSON mode, `temperature: 0`)
+   returns `{ category, urgency, escalate, confidence, reasoning }`. The result is then
+   validated and enriched deterministically:
+   - **Urgency floor**: a clearly critical message (outage, data/security, blocked
+     access) can never be reported below `High`, even if the model under-rates it.
+   - **Routing**: the category maps to an owning team and a concrete next step.
+   - **Escalation**: `High` urgency or a critical signal flags the message for
+     immediate human attention.
+4. **Graceful fallback**: with no API key (or if the call fails), the app degrades to a
+   local keyword/impact heuristic instead of crashing — results are tagged "heuristic."
+5. **Display Results**: Shows category, urgency, route-to team, escalation, confidence,
+   recommended action, and reasoning.
+6. **History**: All analyses are saved to localStorage and viewable in the History tab.
 
 
 ## Example Test Messages

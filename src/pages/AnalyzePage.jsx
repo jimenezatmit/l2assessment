@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { categorizeMessage } from '../utils/llmHelper'
-import { calculateUrgency } from '../utils/urgencyScorer'
-import { getRecommendedAction } from '../utils/templates'
+import { triageMessage, isUsingMockMode } from '../utils/llmHelper'
 
 function AnalyzePage() {
   const [message, setMessage] = useState('')
   const [results, setResults] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     // Check for example message from home page
@@ -18,32 +17,33 @@ function AnalyzePage() {
     }
   }, [])
 
+  const validate = (text) => {
+    const trimmed = text.trim()
+    if (!trimmed) return 'Please enter a message to analyze.'
+    if (trimmed.split(/\s+/).length < 2) {
+      return 'Please enter a more complete message (at least a few words) so triage can be accurate.'
+    }
+    return ''
+  }
+
   const handleAnalyze = async () => {
-    if (!message.trim()) {
-      alert('Please enter a message to analyze')
+    const validationError = validate(message)
+    if (validationError) {
+      setError(validationError)
       return
     }
-
+    setError('')
     setIsLoading(true)
     setResults(null)
-    
+
     try {
-      // Run categorization (LLM call)
-      const { category, reasoning } = await categorizeMessage(message)
-      
-      // Calculate urgency (rule-based)
-      const urgency = calculateUrgency(message)
-      
-      // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(category)
-      
+      // One structured triage call returns category, urgency, routing and escalation.
+      const triage = await triageMessage(message)
+
       const analysisResult = {
         message,
-        category,
-        urgency,
-        recommendedAction,
-        reasoning,
-        timestamp: new Date().toISOString()
+        ...triage,
+        timestamp: new Date().toISOString(),
       }
 
       setResults(analysisResult)
@@ -52,9 +52,9 @@ function AnalyzePage() {
       const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
       history.push(analysisResult)
       localStorage.setItem('triageHistory', JSON.stringify(history))
-    } catch (error) {
-      console.error('Error analyzing message:', error)
-      alert('Error analyzing message. Please try again.')
+    } catch (err) {
+      console.error('Error analyzing message:', err)
+      setError('Something went wrong while analyzing the message. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -63,6 +63,7 @@ function AnalyzePage() {
   const handleClear = () => {
     setMessage('')
     setResults(null)
+    setError('')
   }
 
   return (
@@ -74,6 +75,14 @@ function AnalyzePage() {
             Paste a customer support message below to automatically categorize and prioritize.
           </p>
 
+          {isUsingMockMode() && (
+            <div className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3">
+              <span className="font-semibold">Heuristic mode:</span> no Groq API key is
+              configured, so results come from local keyword/impact rules. Add{' '}
+              <code className="bg-amber-100 px-1 rounded">VITE_GROQ_API_KEY</code> for AI-powered triage.
+            </div>
+          )}
+
           {/* Input Section */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -81,13 +90,17 @@ function AnalyzePage() {
             </label>
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value)
+                if (error) setError('')
+              }}
               placeholder="Paste customer message here..."
               className="w-full border border-gray-300 rounded-lg p-3 h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
             />
-            <div className="text-sm text-gray-500 mt-1">
-              {message.length} characters
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-red-600">{error}</span>
+              <span className="text-gray-500">{message.length} characters</span>
             </div>
           </div>
 
@@ -128,23 +141,50 @@ function AnalyzePage() {
         {results && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
-                <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
-                  {results.category}
-                </div>
-              </div>
 
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
-                <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
-                  results.urgency === 'High' ? 'bg-red-200 text-red-900' :
-                  results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
-                  'bg-green-200 text-green-900'
-                }`}>
-                  {results.urgency}
+            {results.escalate && (
+              <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-300 text-red-800 rounded-lg p-3">
+                <span className="text-lg">🚨</span>
+                <span className="font-semibold">Escalate now —</span>
+                <span>needs immediate human attention, not the normal queue.</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
+                  <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
+                    {results.category}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
+                  <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                    results.urgency === 'High' ? 'bg-red-200 text-red-900' :
+                    results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
+                    'bg-green-200 text-green-900'
+                  }`}>
+                    {results.urgency}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Route To</div>
+                  <div className="inline-block bg-indigo-100 text-indigo-800 px-4 py-2 rounded-lg font-semibold">
+                    {results.routedTeam}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Confidence</div>
+                  <div className="inline-block bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold">
+                    {Math.round((results.confidence ?? 0) * 100)}%
+                    <span className="ml-2 text-xs font-normal text-gray-500">
+                      ({results.source === 'ai' ? 'AI' : 'heuristic'})
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -170,9 +210,8 @@ function AnalyzePage() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
-                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRecommendation: ${results.recommendedAction}\n\nReasoning: ${results.reasoning}`
+                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRoute to: ${results.routedTeam}\nEscalate: ${results.escalate ? 'Yes' : 'No'}\nRecommendation: ${results.recommendedAction}\n\nReasoning: ${results.reasoning}`
                   navigator.clipboard.writeText(text)
-                  alert('Results copied to clipboard!')
                 }}
                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-semibold"
               >
