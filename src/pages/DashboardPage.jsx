@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { scoreSentiment } from '../utils/sentimentScorer'
+import MetricsBarChart from '../components/MetricsBarChart'
 
 const HIGH_URGENCY_TIERS = ['HIGH', 'CRITICAL']
 
@@ -8,6 +9,7 @@ function DashboardPage() {
     total: 0,
     today: 0,
     highUrgencyPercent: 0,
+    highUrgencyCount: 0,
     avgPerDay: 0,
     positiveFeedback: 0,
     negativeFeedback: 0
@@ -45,6 +47,7 @@ function DashboardPage() {
       total: history.length,
       today: todayMessages.length,
       highUrgencyPercent: history.length > 0 ? Math.round((highUrgency / history.length) * 100) : 0,
+      highUrgencyCount: highUrgency,
       avgPerDay: Math.round(history.length / totalDays),
       positiveFeedback,
       negativeFeedback
@@ -177,7 +180,25 @@ function DashboardPage() {
 
         {/* Insights Section */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
-          <h2 className="text-lg font-bold text-blue-900 mb-2">💡 Insights</h2>
+          <h2 className="text-lg font-bold text-blue-900 mb-4">💡 Insights</h2>
+
+          {stats.total === 0 ? (
+            <div className="text-center text-gray-500 py-8">No data yet</div>
+          ) : (
+            <div className="bg-white rounded-lg p-4 mb-4">
+              <MetricsBarChart
+                data={[
+                  { label: 'Total', value: stats.total, color: '#2563eb' },
+                  { label: 'Today', value: stats.today, color: '#16a34a' },
+                  { label: 'High Urgency', value: stats.highUrgencyCount, color: '#dc2626' },
+                  { label: 'Avg/Day', value: stats.avgPerDay, color: '#9333ea' },
+                  { label: 'Positive', value: stats.positiveFeedback, color: '#16a34a' },
+                  { label: 'Negative', value: stats.negativeFeedback, color: '#dc2626' }
+                ]}
+              />
+            </div>
+          )}
+
           <div className="space-y-2 text-sm text-blue-800">
             {stats.highUrgencyPercent > 30 && (
               <p>⚠️ High urgency messages represent {stats.highUrgencyPercent}% of total volume - consider additional support resources</p>
