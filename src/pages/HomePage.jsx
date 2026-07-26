@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { normalizeCategory } from '../utils/templates'
+import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function HomePage() {
   const [stats, setStats] = useState({ total: 0, today: 0 })
@@ -7,7 +9,12 @@ function HomePage() {
 
   useEffect(() => {
     // Load stats from localStorage
-    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
+    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]').map(item => ({
+      ...item,
+      category: normalizeCategory(item.category),
+      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency, item.reasoning)
+    }))
+    localStorage.setItem('triageHistory', JSON.stringify(history))
     const today = new Date().toDateString()
     const todayCount = history.filter(item => 
       new Date(item.timestamp).toDateString() === today
@@ -109,9 +116,10 @@ function HomePage() {
                       </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {item.category}
+                          {normalizeCategory(item.category)}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
+                          item.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                           item.urgency === 'High' ? 'bg-red-100 text-red-800' :
                           item.urgency === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-green-100 text-green-800'

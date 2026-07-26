@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
-import { calculateUrgency } from '../utils/urgencyScorer'
-import { getRecommendedAction } from '../utils/templates'
+import { calculateUrgency, normalizeUrgency } from '../utils/urgencyScorer'
+import { getRecommendedAction, normalizeCategory } from '../utils/templates'
 
 function AnalyzePage() {
   const [message, setMessage] = useState('')
@@ -30,16 +30,18 @@ function AnalyzePage() {
     try {
       // Run categorization (LLM call)
       const { category, reasoning } = await categorizeMessage(message)
+      const normalizedCategory = normalizeCategory(category)
       
-      // Calculate urgency (rule-based)
-      const urgency = calculateUrgency(message)
+      // Calculate urgency (rule-based), escalated to Urgent if the AI flagged
+      // low confidence in its own categorization
+      const urgency = normalizeUrgency(normalizedCategory, calculateUrgency(message), reasoning)
       
       // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(category)
+      const recommendedAction = getRecommendedAction(normalizedCategory, urgency)
       
       const analysisResult = {
         message,
-        category,
+        category: normalizedCategory,
         urgency,
         recommendedAction,
         reasoning,
@@ -140,6 +142,7 @@ function AnalyzePage() {
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
                 <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                  results.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                   results.urgency === 'High' ? 'bg-red-200 text-red-900' :
                   results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                   'bg-green-200 text-green-900'

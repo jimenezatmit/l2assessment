@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { normalizeCategory } from '../utils/templates'
+import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function DashboardPage() {
   const [stats, setStats] = useState({
@@ -8,21 +10,26 @@ function DashboardPage() {
     avgPerDay: 0
   })
   const [categoryData, setCategoryData] = useState([])
-  const [urgencyData, setUrgencyData] = useState({ High: 0, Medium: 0, Low: 0 })
+  const [urgencyData, setUrgencyData] = useState({ Urgent: 0, High: 0, Medium: 0, Low: 0 })
 
   useEffect(() => {
     loadDashboardData()
   }, [])
 
   const loadDashboardData = () => {
-    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
+    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]').map(item => ({
+      ...item,
+      category: normalizeCategory(item.category),
+      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency, item.reasoning)
+    }))
+    localStorage.setItem('triageHistory', JSON.stringify(history))
     const today = new Date().toDateString()
-    const todayMessages = history.filter(item => 
+    const todayMessages = history.filter(item =>
       new Date(item.timestamp).toDateString() === today
     )
 
     // Calculate stats
-    const highUrgency = history.filter(h => h.urgency === 'High').length
+    const highUrgency = history.filter(h => h.urgency === 'High' || h.urgency === 'Urgent').length
     const totalDays = history.length > 0 ? 7 : 1
     
     setStats({
@@ -40,7 +47,7 @@ function DashboardPage() {
     setCategoryData(Object.entries(categories).map(([name, count]) => ({ name, count })))
 
     // Urgency breakdown
-    const urgency = { High: 0, Medium: 0, Low: 0 }
+    const urgency = { Urgent: 0, High: 0, Medium: 0, Low: 0 }
     history.forEach(item => {
       urgency[item.urgency] = (urgency[item.urgency] || 0) + 1
     })
@@ -66,7 +73,7 @@ function DashboardPage() {
             <div className="text-3xl font-bold text-green-600">{stats.today}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm text-gray-600 mb-1">High Urgency</div>
+            <div className="text-sm text-gray-600 mb-1">Urgent/High</div>
             <div className="text-3xl font-bold text-red-600">{stats.highUrgencyPercent}%</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
@@ -111,6 +118,13 @@ function DashboardPage() {
               <div className="text-center text-gray-500 py-8">No data yet</div>
             ) : (
               <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-red-700 rounded mr-2"></div>
+                    <span className="text-gray-700">Urgent</span>
+                  </div>
+                  <span className="text-2xl font-bold text-red-700">{urgencyData.Urgent}</span>
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>

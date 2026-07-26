@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { normalizeCategory, getRecommendedAction } from '../utils/templates'
+import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function HistoryPage() {
   const [history, setHistory] = useState([])
@@ -12,7 +14,18 @@ function HistoryPage() {
 
   const loadHistory = () => {
     const savedHistory = JSON.parse(localStorage.getItem('triageHistory') || '[]')
-    setHistory(savedHistory)
+    const normalizedHistory = savedHistory.map(item => {
+      const category = normalizeCategory(item.category)
+      const urgency = normalizeUrgency(category, item.urgency, item.reasoning)
+      return {
+        ...item,
+        category,
+        urgency,
+        recommendedAction: getRecommendedAction(category, urgency)
+      }
+    })
+    setHistory(normalizedHistory)
+    localStorage.setItem('triageHistory', JSON.stringify(normalizedHistory))
   }
 
   const clearHistory = () => {
@@ -28,9 +41,9 @@ function HistoryPage() {
   
   const filteredHistory = filter === 'all' 
     ? sortedHistory 
-    : sortedHistory.filter(item => item.category === filter)
+    : sortedHistory.filter(item => normalizeCategory(item.category) === filter)
 
-  const categories = [...new Set(history.map(item => item.category))]
+  const categories = [...new Set(history.map(item => normalizeCategory(item.category)))]
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -118,9 +131,10 @@ function HistoryPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
-                        {item.category}
+                        {normalizeCategory(item.category)}
                       </span>
                       <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                        item.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                         item.urgency === 'High' ? 'bg-red-200 text-red-900' :
                         item.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                         'bg-green-200 text-green-900'

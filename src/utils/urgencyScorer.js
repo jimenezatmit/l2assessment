@@ -39,3 +39,18 @@ export function calculateUrgency(message) {
   if (urgencyScore < 30) return "Low"
   return "Medium"
 }
+
+const MANUAL_REVIEW_PATTERN = /manual review|human review/i
+
+/**
+ * Whether the AI's reasoning indicates it wasn't confident enough to
+ * categorize the message on its own.
+ */
+export function needsManualReview(reasoning) {
+  return typeof reasoning === 'string' && MANUAL_REVIEW_PATTERN.test(reasoning)
+}
+
+export function normalizeUrgency(category, urgency, reasoning) {
+  if (needsManualReview(reasoning)) return 'Urgent'
+  return category === 'Contact Customer' ? 'High' : urgency
+}

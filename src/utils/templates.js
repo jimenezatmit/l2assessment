@@ -7,7 +7,11 @@ const actionTemplates = {
   "Technical Problem": "Suggest user to restart their browser.",
   "General Inquiry": "Respond with FAQ link.",
   "Feature Request": "Ask user to check billing portal.",
-  "Unknown": "Review manually."
+  "Contact Customer": "Review manually."
+}
+
+export function normalizeCategory(category) {
+  return category === 'Unknown' ? 'Contact Customer' : category
 }
 
 /**
@@ -18,6 +22,7 @@ const actionTemplates = {
  * @returns {string} - Recommended next step
  */
 export function getRecommendedAction(category, urgency) {
+  if (urgency === 'Urgent') return "Please wait for an associate to contact you."
   return actionTemplates[category] || "No recommendation available."
 }
 
