@@ -12,7 +12,7 @@ function HomePage() {
     const history = JSON.parse(localStorage.getItem('triageHistory') || '[]').map(item => ({
       ...item,
       category: normalizeCategory(item.category),
-      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency)
+      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency, item.reasoning)
     }))
     localStorage.setItem('triageHistory', JSON.stringify(history))
     const today = new Date().toDateString()
@@ -119,6 +119,7 @@ function HomePage() {
                           {normalizeCategory(item.category)}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded ${
+                          item.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                           item.urgency === 'High' ? 'bg-red-100 text-red-800' :
                           item.urgency === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-green-100 text-green-800'

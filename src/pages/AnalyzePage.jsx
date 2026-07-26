@@ -32,11 +32,12 @@ function AnalyzePage() {
       const { category, reasoning } = await categorizeMessage(message)
       const normalizedCategory = normalizeCategory(category)
       
-      // Calculate urgency (rule-based)
-      const urgency = normalizeUrgency(normalizedCategory, calculateUrgency(message))
+      // Calculate urgency (rule-based), escalated to Urgent if the AI flagged
+      // low confidence in its own categorization
+      const urgency = normalizeUrgency(normalizedCategory, calculateUrgency(message), reasoning)
       
       // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(normalizedCategory)
+      const recommendedAction = getRecommendedAction(normalizedCategory, urgency)
       
       const analysisResult = {
         message,
@@ -141,6 +142,7 @@ function AnalyzePage() {
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
                 <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                  results.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                   results.urgency === 'High' ? 'bg-red-200 text-red-900' :
                   results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                   'bg-green-200 text-green-900'

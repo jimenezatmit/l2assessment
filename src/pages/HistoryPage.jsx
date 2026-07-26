@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { normalizeCategory } from '../utils/templates'
+import { normalizeCategory, getRecommendedAction } from '../utils/templates'
 import { normalizeUrgency } from '../utils/urgencyScorer'
 
 function HistoryPage() {
@@ -14,11 +14,16 @@ function HistoryPage() {
 
   const loadHistory = () => {
     const savedHistory = JSON.parse(localStorage.getItem('triageHistory') || '[]')
-    const normalizedHistory = savedHistory.map(item => ({
-      ...item,
-      category: normalizeCategory(item.category),
-      urgency: normalizeUrgency(normalizeCategory(item.category), item.urgency)
-    }))
+    const normalizedHistory = savedHistory.map(item => {
+      const category = normalizeCategory(item.category)
+      const urgency = normalizeUrgency(category, item.urgency, item.reasoning)
+      return {
+        ...item,
+        category,
+        urgency,
+        recommendedAction: getRecommendedAction(category, urgency)
+      }
+    })
     setHistory(normalizedHistory)
     localStorage.setItem('triageHistory', JSON.stringify(normalizedHistory))
   }
@@ -129,6 +134,7 @@ function HistoryPage() {
                         {normalizeCategory(item.category)}
                       </span>
                       <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                        item.urgency === 'Urgent' ? 'bg-red-600 text-white' :
                         item.urgency === 'High' ? 'bg-red-200 text-red-900' :
                         item.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                         'bg-green-200 text-green-900'

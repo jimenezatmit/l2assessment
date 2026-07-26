@@ -22,6 +22,7 @@ export function normalizeCategory(category) {
  * @returns {string} - Recommended next step
  */
 export function getRecommendedAction(category, urgency) {
+  if (urgency === 'Urgent') return "Please wait for an associate to contact you."
   return actionTemplates[category] || "No recommendation available."
 }
 
