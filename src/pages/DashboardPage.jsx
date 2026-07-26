@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
+import { scoreSentiment } from '../utils/sentimentScorer'
+
+const HIGH_URGENCY_TIERS = ['HIGH', 'CRITICAL']
 
 function DashboardPage() {
   const [stats, setStats] = useState({
     total: 0,
     today: 0,
     highUrgencyPercent: 0,
-    avgPerDay: 0
+    avgPerDay: 0,
+    positiveFeedback: 0,
+    negativeFeedback: 0
   })
   const [categoryData, setCategoryData] = useState([])
   const [urgencyData, setUrgencyData] = useState({ CRITICAL: 0, High: 0, Medium: 0, Low: 0 })
@@ -24,12 +29,25 @@ function DashboardPage() {
     // Calculate stats
     const highUrgency = history.filter(h => h.urgency === 'High').length
     const totalDays = history.length > 0 ? 7 : 1
-    
+
+    // Feedback sentiment only applies to non-high-urgency messages
+    // (urgent incidents aren't customer feedback)
+    const feedbackEligible = history.filter(item => !HIGH_URGENCY_TIERS.includes(item.urgency))
+    let positiveFeedback = 0
+    let negativeFeedback = 0
+    feedbackEligible.forEach(item => {
+      const { sentiment } = scoreSentiment(item.message)
+      if (sentiment === 'Positive') positiveFeedback++
+      if (sentiment === 'Negative') negativeFeedback++
+    })
+
     setStats({
       total: history.length,
       today: todayMessages.length,
       highUrgencyPercent: history.length > 0 ? Math.round((highUrgency / history.length) * 100) : 0,
-      avgPerDay: Math.round(history.length / totalDays)
+      avgPerDay: Math.round(history.length / totalDays),
+      positiveFeedback,
+      negativeFeedback
     })
 
     // Category distribution
@@ -72,6 +90,19 @@ function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm text-gray-600 mb-1">Avg Per Day</div>
             <div className="text-3xl font-bold text-purple-600">{stats.avgPerDay}</div>
+          </div>
+        </div>
+
+        {/* Feedback Cards */}
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Feedback</h2>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Positive Feedback</div>
+            <div className="text-3xl font-bold text-green-600">{stats.positiveFeedback}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Negative Feedback</div>
+            <div className="text-3xl font-bold text-red-600">{stats.negativeFeedback}</div>
           </div>
         </div>
 
