@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { detectEscalationRisk } from './urgencyScorer';
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -45,14 +46,20 @@ export async function categorizeMessage(message) {
     const cleaned = content.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
 
+    // Independent risk check — runs regardless of what the LLM decided,
+    // so a missed or under-scored risk signal can't silently suppress escalation.
+    const escalationOverride = detectEscalationRisk(message);
+
     return {
       category: parsed.category || "General Inquiry",
       priority: parsed.priority || "Medium",
-      urgencyFlag: parsed.urgency_flag || false,
+      urgencyFlag: (parsed.urgency_flag || false) || escalationOverride,
       routing: parsed.routing || "General Support",
       summary: parsed.summary || "",
       tone: parsed.tone || "Neutral",
-      reasoning: parsed.reasoning || ""
+      reasoning: escalationOverride && !parsed.urgency_flag
+        ? `${parsed.reasoning || ""} (Escalated: message contains churn-risk or business-impact language.)`
+        : (parsed.reasoning || "")
     };
   } catch (error) {
     console.warn('Groq API failed, using fallback:', error.message);
@@ -62,10 +69,20 @@ export async function categorizeMessage(message) {
 
 function getMockCategorization(message) {
   const m = message.toLowerCase();
-  if (m.includes('cancel') || m.includes('switching') || m.includes('competitor')) return { category: "Churn Risk", priority: "High", urgencyFlag: true, routing: "Account Management", summary: "Customer threatening to leave.", tone: "Frustrated", reasoning: "Message contains churn signals." };
-  if (m.includes('locked out') || m.includes('outage') || m.includes('down')) return { category: "Technical Problem", priority: "Critical", urgencyFlag: true, routing: "Technical Support", summary: "Critical system issue.", tone: "Urgent", reasoning: "Message indicates a blocking outage." };
-  if (m.includes('bill') || m.includes('charge') || m.includes('refund')) return { category: "Billing Issue", priority: "Medium", urgencyFlag: false, routing: "Billing Team", summary: "Billing or payment question.", tone: "Neutral", reasoning: "Message contains billing keywords." };
-  if (m.includes('bug') || m.includes('error') || m.includes('not working')) return { category: "Technical Problem", priority: "High", urgencyFlag: false, routing: "Technical Support", summary: "Technical issue reported.", tone: "Frustrated", reasoning: "Message describes a technical problem." };
-  if (m.includes('feature') || m.includes('suggestion')) return { category: "Feature Request", priority: "Low", urgencyFlag: false, routing: "Product Team", summary: "Customer suggesting improvement.", tone: "Neutral", reasoning: "Message contains feature request language." };
-  return { category: "General Inquiry", priority: "Low", urgencyFlag: false, routing: "General Support", summary: "General customer question.", tone: "Neutral", reasoning: "No specific category signals detected." };
+  const escalationOverride = detectEscalationRisk(message);
+
+  let result;
+  if (m.includes('cancel') || m.includes('switching') || m.includes('competitor')) result = { category: "Churn Risk", priority: "High", urgencyFlag: true, routing: "Account Management", summary: "Customer threatening to leave.", tone: "Frustrated", reasoning: "Message contains churn signals." };
+  else if (m.includes('locked out') || m.includes('outage') || m.includes('down')) result = { category: "Technical Problem", priority: "Critical", urgencyFlag: true, routing: "Technical Support", summary: "Critical system issue.", tone: "Urgent", reasoning: "Message indicates a blocking outage." };
+  else if (m.includes('bill') || m.includes('charge') || m.includes('refund')) result = { category: "Billing Issue", priority: "Medium", urgencyFlag: false, routing: "Billing Team", summary: "Billing or payment question.", tone: "Neutral", reasoning: "Message contains billing keywords." };
+  else if (m.includes('bug') || m.includes('error') || m.includes('not working')) result = { category: "Technical Problem", priority: "High", urgencyFlag: false, routing: "Technical Support", summary: "Technical issue reported.", tone: "Frustrated", reasoning: "Message describes a technical problem." };
+  else if (m.includes('feature') || m.includes('suggestion')) result = { category: "Feature Request", priority: "Low", urgencyFlag: false, routing: "Product Team", summary: "Customer suggesting improvement.", tone: "Neutral", reasoning: "Message contains feature request language." };
+  else result = { category: "General Inquiry", priority: "Low", urgencyFlag: false, routing: "General Support", summary: "General customer question.", tone: "Neutral", reasoning: "No specific category signals detected." };
+
+  if (escalationOverride && !result.urgencyFlag) {
+    result.urgencyFlag = true;
+    result.reasoning += " (Escalated: message contains churn-risk or business-impact language.)";
+  }
+
+  return result;
 }
