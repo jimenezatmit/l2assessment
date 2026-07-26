@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
+import { scoreSentiment } from '../utils/sentimentScorer'
+import MetricsBarChart from '../components/MetricsBarChart'
+
+const HIGH_URGENCY_TIERS = ['HIGH', 'CRITICAL']
 
 function DashboardPage() {
   const [stats, setStats] = useState({
     total: 0,
     today: 0,
     highUrgencyPercent: 0,
-    avgPerDay: 0
+    highUrgencyCount: 0,
+    avgPerDay: 0,
+    positiveFeedback: 0,
+    negativeFeedback: 0
   })
   const [categoryData, setCategoryData] = useState([])
-  const [urgencyData, setUrgencyData] = useState({ High: 0, Medium: 0, Low: 0 })
+  const [urgencyData, setUrgencyData] = useState({ CRITICAL: 0, High: 0, Medium: 0, Low: 0 })
 
   useEffect(() => {
     loadDashboardData()
@@ -24,12 +31,26 @@ function DashboardPage() {
     // Calculate stats
     const highUrgency = history.filter(h => h.urgency === 'High').length
     const totalDays = history.length > 0 ? 7 : 1
-    
+
+    // Feedback sentiment only applies to non-high-urgency messages
+    // (urgent incidents aren't customer feedback)
+    const feedbackEligible = history.filter(item => !HIGH_URGENCY_TIERS.includes(item.urgency))
+    let positiveFeedback = 0
+    let negativeFeedback = 0
+    feedbackEligible.forEach(item => {
+      const { sentiment } = scoreSentiment(item.message)
+      if (sentiment === 'Positive') positiveFeedback++
+      if (sentiment === 'Negative') negativeFeedback++
+    })
+
     setStats({
       total: history.length,
       today: todayMessages.length,
       highUrgencyPercent: history.length > 0 ? Math.round((highUrgency / history.length) * 100) : 0,
-      avgPerDay: Math.round(history.length / totalDays)
+      highUrgencyCount: highUrgency,
+      avgPerDay: Math.round(history.length / totalDays),
+      positiveFeedback,
+      negativeFeedback
     })
 
     // Category distribution
@@ -40,7 +61,7 @@ function DashboardPage() {
     setCategoryData(Object.entries(categories).map(([name, count]) => ({ name, count })))
 
     // Urgency breakdown
-    const urgency = { High: 0, Medium: 0, Low: 0 }
+    const urgency = { CRITICAL: 0, High: 0, Medium: 0, Low: 0 }
     history.forEach(item => {
       urgency[item.urgency] = (urgency[item.urgency] || 0) + 1
     })
@@ -72,6 +93,19 @@ function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm text-gray-600 mb-1">Avg Per Day</div>
             <div className="text-3xl font-bold text-purple-600">{stats.avgPerDay}</div>
+          </div>
+        </div>
+
+        {/* Feedback Cards */}
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Feedback</h2>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Positive Feedback</div>
+            <div className="text-3xl font-bold text-green-600">{stats.positiveFeedback}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Negative Feedback</div>
+            <div className="text-3xl font-bold text-red-600">{stats.negativeFeedback}</div>
           </div>
         </div>
 
@@ -113,6 +147,13 @@ function DashboardPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
+                    <div className="w-4 h-4 bg-red-700 rounded mr-2"></div>
+                    <span className="text-gray-700">Critical</span>
+                  </div>
+                  <span className="text-2xl font-bold text-red-700">{urgencyData.CRITICAL}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
                     <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
                     <span className="text-gray-700">High</span>
                   </div>
@@ -139,7 +180,25 @@ function DashboardPage() {
 
         {/* Insights Section */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
-          <h2 className="text-lg font-bold text-blue-900 mb-2">💡 Insights</h2>
+          <h2 className="text-lg font-bold text-blue-900 mb-4">💡 Insights</h2>
+
+          {stats.total === 0 ? (
+            <div className="text-center text-gray-500 py-8">No data yet</div>
+          ) : (
+            <div className="bg-white rounded-lg p-4 mb-4">
+              <MetricsBarChart
+                data={[
+                  { label: 'Total', value: stats.total, color: '#2563eb' },
+                  { label: 'Today', value: stats.today, color: '#16a34a' },
+                  { label: 'High Urgency', value: stats.highUrgencyCount, color: '#dc2626' },
+                  { label: 'Avg/Day', value: stats.avgPerDay, color: '#9333ea' },
+                  { label: 'Positive', value: stats.positiveFeedback, color: '#16a34a' },
+                  { label: 'Negative', value: stats.negativeFeedback, color: '#dc2626' }
+                ]}
+              />
+            </div>
+          )}
+
           <div className="space-y-2 text-sm text-blue-800">
             {stats.highUrgencyPercent > 30 && (
               <p>⚠️ High urgency messages represent {stats.highUrgencyPercent}% of total volume - consider additional support resources</p>

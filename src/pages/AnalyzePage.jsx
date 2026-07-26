@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
-import { calculateUrgency } from '../utils/urgencyScorer'
+import { calculateUrgency, scoreUrgency } from '../utils/urgencyScorer'
 import { getRecommendedAction } from '../utils/templates'
 
 function AnalyzePage() {
@@ -31,8 +31,9 @@ function AnalyzePage() {
       // Run categorization (LLM call)
       const { category, reasoning } = await categorizeMessage(message)
       
-      // Calculate urgency (rule-based)
-      const urgency = calculateUrgency(message)
+      // Calculate urgency using the keyword-based triage rules
+      const urgencyResult = scoreUrgency(message)
+      const urgency = urgencyResult.urgency
       
       // Get recommended action (template-based)
       const recommendedAction = getRecommendedAction(category)
@@ -41,6 +42,9 @@ function AnalyzePage() {
         message,
         category,
         urgency,
+        urgencyCategory: urgencyResult.urgencyCategory,
+        urgencyTrigger: urgencyResult.trigger,
+        urgencyReasoning: urgencyResult.reasoning,
         recommendedAction,
         reasoning,
         timestamp: new Date().toISOString()
@@ -82,6 +86,12 @@ function AnalyzePage() {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleAnalyze()
+                }
+              }}
               placeholder="Paste customer message here..."
               className="w-full border border-gray-300 rounded-lg p-3 h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
@@ -140,6 +150,7 @@ function AnalyzePage() {
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
                 <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                  results.urgency === 'CRITICAL' ? 'bg-red-700 text-white' :
                   results.urgency === 'High' ? 'bg-red-200 text-red-900' :
                   results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                   'bg-green-200 text-green-900'
@@ -147,6 +158,15 @@ function AnalyzePage() {
                   {results.urgency}
                 </div>
               </div>
+
+              {results.urgencyTrigger && (
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Trigger</div>
+                  <div className="bg-red-50 border border-red-200 text-red-900 rounded-lg p-4">
+                    {results.urgencyTrigger}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Recommended Action</div>

@@ -121,6 +121,7 @@ function HistoryPage() {
                         {item.category}
                       </span>
                       <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                        item.urgency === 'CRITICAL' ? 'bg-red-700 text-white' :
                         item.urgency === 'High' ? 'bg-red-200 text-red-900' :
                         item.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                         'bg-green-200 text-green-900'
