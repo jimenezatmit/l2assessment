@@ -45,7 +45,18 @@ export function getAvailableCategories() {
 export function shouldEscalate(category, urgency, message) {
   const lower = message.toLowerCase();
   if (urgency === 'High') return true;
+
+  // Billing/Technical issues escalate even at Medium urgency: these categories
+  // are disproportionately time-sensitive (e.g. failed payments before renewal,
+  // partial outages) even when the message itself is phrased calmly. This is a
+  // deliberate widening vs. "escalate only on High" — revisit if it proves too
+  // aggressive (see PR discussion).
   if ((category === 'Billing Issue' || category === 'Technical Problem') && urgency === 'Medium') return true;
+
+  // Keyword safety net: force escalation on critical terms even if the
+  // numeric urgency score comes out lower than expected (defense-in-depth
+  // against scoring edge cases).
   if (lower.includes('production') || lower.includes('server down') || lower.includes('security') || lower.includes('data loss')) return true;
+
   return false;
 }
