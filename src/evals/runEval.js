@@ -15,7 +15,7 @@
  * Usage: node src/evals/runEval.js
  */
 
-import { calculateUrgency } from '../utils/urgencyScorer.js'
+import { scoreUrgency } from '../utils/urgencyScorer.js'
 import { goldenSet } from './goldenSet.js'
 
 const LABELS = ['High', 'Medium', 'Low']
@@ -55,11 +55,13 @@ function printConfusionMatrix(matrix) {
 
 function runEval() {
   const results = goldenSet.map(item => {
-    const actualUrgency = calculateUrgency(item.message)
+    const { level, score, signals } = scoreUrgency(item.message)
     return {
       ...item,
-      actualUrgency,
-      correct: actualUrgency === item.expectedUrgency,
+      actualUrgency: level,
+      score,
+      signals,
+      correct: level === item.expectedUrgency,
     }
   })
 
@@ -92,8 +94,17 @@ function runEval() {
   } else {
     failures.forEach(f => {
       const preview = f.message.length > 80 ? f.message.slice(0, 77) + '...' : f.message
-      console.log(`  [${f.id}] (${f.tag}) expected=${f.expectedUrgency} actual=${f.actualUrgency}`)
+      console.log(`  [${f.id}] (${f.tag}) expected=${f.expectedUrgency} actual=${f.actualUrgency} score=${f.score}`)
       console.log(`    "${preview}"`)
+      if (f.signals.length === 0) {
+        console.log('    signals: none fired')
+      } else {
+        f.signals.forEach(s => {
+          const phrase = s.phrase ? ` phrase="${s.phrase}"` : ''
+          const note = s.note ? ` (${s.note})` : ''
+          console.log(`    signal: ${s.id} weight=${s.weight}${phrase}${note}`)
+        })
+      }
     })
   }
 
