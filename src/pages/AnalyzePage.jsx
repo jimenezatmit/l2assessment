@@ -28,8 +28,8 @@ function AnalyzePage() {
     setResults(null)
     
     try {
-      // Run categorization (LLM call)
-      const { category, reasoning } = await categorizeMessage(message)
+      // Run categorization (LLM call, may resolve degraded on failure)
+      const { category, reasoning, confidence, source, degraded } = await categorizeMessage(message)
 
       // Calculate urgency (rule-based)
       const { level: urgency, score: urgencyScore, signals: urgencySignals } = scoreUrgency(message)
@@ -38,7 +38,7 @@ function AnalyzePage() {
       const recommendedAction = getRecommendedAction(category, urgency)
 
       // Decide whether this needs a human instead of the automated routing
-      const escalation = shouldEscalate({ category, urgency, urgencySignals })
+      const escalation = shouldEscalate({ category, urgency, urgencySignals, confidence, degraded })
 
       const analysisResult = {
         message,
@@ -49,6 +49,9 @@ function AnalyzePage() {
         recommendedAction,
         escalation,
         reasoning,
+        confidence,
+        source,
+        degraded,
         timestamp: new Date().toISOString()
       }
 
@@ -134,12 +137,26 @@ function AnalyzePage() {
         {results && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-            
+
+            {results.degraded && (
+              <div className="mb-4 bg-amber-50 border border-amber-300 rounded-lg p-3 text-amber-900 text-sm font-semibold">
+                ⚠ AI categorization is unavailable right now. The category and reasoning below are a keyword-based fallback, not a real AI judgment - this ticket has been routed for human review.
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
-                <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
-                  {results.category}
+                <div className="flex items-center gap-2">
+                  <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
+                    {results.category}
+                  </div>
+                  {typeof results.confidence === 'number' && (
+                    <span className="text-sm text-gray-500">
+                      {Math.round(results.confidence * 100)}% confidence
+                      {results.source === 'fallback' ? ' (fallback)' : ''}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -183,7 +200,9 @@ function AnalyzePage() {
               )}
 
               <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">AI Reasoning</div>
+                <div className="text-sm font-semibold text-gray-600 mb-1">
+                  {results.source === 'fallback' ? 'Fallback Reasoning (AI unavailable)' : 'AI Reasoning'}
+                </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="prose prose-sm max-w-none text-gray-700">
                     <ReactMarkdown>
@@ -201,7 +220,10 @@ function AnalyzePage() {
                   const escalationText = results.escalation?.escalate
                     ? `\nEscalate to human: yes (${results.escalation.reasons.join('; ')})`
                     : ''
-                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRouting: ${priority} -> ${team} (SLA: ${sla})\nAction: ${action}${escalationText}\n\nReasoning: ${results.reasoning}`
+                  const confidenceText = typeof results.confidence === 'number'
+                    ? `\nConfidence: ${Math.round(results.confidence * 100)}%${results.source === 'fallback' ? ' (fallback - AI unavailable)' : ''}`
+                    : ''
+                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRouting: ${priority} -> ${team} (SLA: ${sla})\nAction: ${action}${escalationText}${confidenceText}\n\nReasoning: ${results.reasoning}`
                   navigator.clipboard.writeText(text)
                   alert('Results copied to clipboard!')
                 }}
