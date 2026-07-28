@@ -113,8 +113,7 @@ const SIGNAL_DEFINITIONS = [
     label: 'Churn risk',
     weight: 25,
     patterns: [
-      /cancel(l)?ing? (my|our) (account|subscription|contract)/i,
-      /cancel my account/i,
+      /cancel\w* (my|our) (account|subscription|contract)/i,
       /switch(ing)? to a competitor/i,
       /evaluat(e|ing) competitors/i,
       /terminat(e|ing) (the |our )?contract/i,

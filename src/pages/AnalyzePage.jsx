@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
-import { calculateUrgency } from '../utils/urgencyScorer'
-import { getRecommendedAction } from '../utils/templates'
+import { scoreUrgency } from '../utils/urgencyScorer'
+import { getRecommendedAction, shouldEscalate } from '../utils/templates'
 
 function AnalyzePage() {
   const [message, setMessage] = useState('')
@@ -30,18 +30,24 @@ function AnalyzePage() {
     try {
       // Run categorization (LLM call)
       const { category, reasoning } = await categorizeMessage(message)
-      
+
       // Calculate urgency (rule-based)
-      const urgency = calculateUrgency(message)
-      
-      // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(category)
-      
+      const { level: urgency, score: urgencyScore, signals: urgencySignals } = scoreUrgency(message)
+
+      // Get recommended action (routes on category x urgency)
+      const recommendedAction = getRecommendedAction(category, urgency)
+
+      // Decide whether this needs a human instead of the automated routing
+      const escalation = shouldEscalate({ category, urgency, urgencySignals })
+
       const analysisResult = {
         message,
         category,
         urgency,
+        urgencyScore,
+        urgencySignals,
         recommendedAction,
+        escalation,
         reasoning,
         timestamp: new Date().toISOString()
       }
@@ -149,11 +155,32 @@ function AnalyzePage() {
               </div>
 
               <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Recommended Action</div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-gray-800">{results.recommendedAction}</p>
+                <div className="text-sm font-semibold text-gray-600 mb-1">Routing</div>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-1">
+                  <p className="text-gray-800">
+                    <span className="font-semibold">{results.recommendedAction.priority}</span>
+                    {' -> '}
+                    {results.recommendedAction.team}
+                    {' '}
+                    <span className="text-gray-500">(SLA: {results.recommendedAction.sla})</span>
+                  </p>
+                  <p className="text-gray-800">{results.recommendedAction.action}</p>
                 </div>
               </div>
+
+              {results.escalation?.escalate && (
+                <div>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">Escalation</div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-900 font-semibold mb-1">Route to a human</p>
+                    <ul className="list-disc list-inside text-red-800 text-sm">
+                      {results.escalation.reasons.map((reason, i) => (
+                        <li key={i}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">AI Reasoning</div>
@@ -170,7 +197,11 @@ function AnalyzePage() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
-                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRecommendation: ${results.recommendedAction}\n\nReasoning: ${results.reasoning}`
+                  const { priority, team, sla, action } = results.recommendedAction
+                  const escalationText = results.escalation?.escalate
+                    ? `\nEscalate to human: yes (${results.escalation.reasons.join('; ')})`
+                    : ''
+                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRouting: ${priority} -> ${team} (SLA: ${sla})\nAction: ${action}${escalationText}\n\nReasoning: ${results.reasoning}`
                   navigator.clipboard.writeText(text)
                   alert('Results copied to clipboard!')
                 }}
