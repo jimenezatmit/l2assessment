@@ -9,9 +9,17 @@ export function calculateUrgency(message) {
   // Emphasis via exclamation marks should increase urgency but cap impact
   urgencyScore += Math.min(exclamationCount * 20, 60)
   
+  // Precompute lowercase and outage detection to avoid penalizing short
+  // but critical outage messages (e.g., "Server down!")
+  const lower = message.toLowerCase()
+  const isOutage = lower.includes('production') || lower.includes('server down') || lower.includes('outage') || lower.includes('data loss')
+
   // Short messages often lack detail but can be urgent ("Server down!")
-  if (message.length < 50) urgencyScore -= 20
-  if (message.length < 20) urgencyScore -= 40
+  // Skip length penalties when the message contains outage/production keywords.
+  if (!isOutage) {
+    if (message.length < 50) urgencyScore -= 20
+    if (message.length < 20) urgencyScore -= 40
+  }
   
   // ALL CAPS often indicates urgency/shouting — increase score
   if (message === message.toUpperCase() && message.length > 10) {
@@ -20,7 +28,7 @@ export function calculateUrgency(message) {
   
   const politeWords = ['please', 'thank', 'thanks', 'appreciate', 'kindly']
   politeWords.forEach(word => {
-    if (message.toLowerCase().includes(word)) urgencyScore -= 10
+    if (lower.includes(word)) urgencyScore -= 10
   })
   
   // Questions are often lower urgency (support question), but not always
@@ -36,12 +44,11 @@ export function calculateUrgency(message) {
   
   const positiveWords = ['happy', 'love', 'great', 'excellent', 'wonderful']
   positiveWords.forEach(word => {
-    if (message.toLowerCase().includes(word)) urgencyScore -= 15
+    if (lower.includes(word)) urgencyScore -= 15
   })
   
   // Boost urgency if message references production/outage keywords
-  const lower = message.toLowerCase()
-  if (lower.includes('production') || lower.includes('server down') || lower.includes('outage') || lower.includes('data loss')) {
+  if (isOutage) {
     urgencyScore += 30
   }
   
