@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import ComplaintsTable from '../components/ComplaintsTable'
+import { loadComplaints } from '../utils/complaints'
 
 function DashboardPage() {
   const [stats, setStats] = useState({
@@ -9,13 +11,15 @@ function DashboardPage() {
   })
   const [categoryData, setCategoryData] = useState([])
   const [urgencyData, setUrgencyData] = useState({ High: 0, Medium: 0, Low: 0 })
+  const [complaints, setComplaints] = useState([])
 
   useEffect(() => {
     loadDashboardData()
   }, [])
 
   const loadDashboardData = () => {
-    const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
+    const history = loadComplaints()
+    setComplaints(history)
     const today = new Date().toDateString()
     const todayMessages = history.filter(item => 
       new Date(item.timestamp).toDateString() === today
@@ -151,6 +155,12 @@ function DashboardPage() {
               <p>👋 Start by analyzing some messages to see insights here</p>
             )}
           </div>
+        </div>
+
+        {/* Complaints Table */}
+        <div className="bg-white rounded-lg shadow p-6 mt-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Complaints</h2>
+          <ComplaintsTable complaints={complaints} onUpdate={loadDashboardData} />
         </div>
       </div>
     </div>

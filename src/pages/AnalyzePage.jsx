@@ -1,13 +1,27 @@
 import { useState, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
 import { calculateUrgency } from '../utils/urgencyScorer'
 import { getRecommendedAction } from '../utils/templates'
+import AnalysisResultsTable from '../components/AnalysisResultsTable'
+
+function parseBatchMessages(text) {
+  try {
+    const parsed = JSON.parse(text)
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(m => typeof m === 'string' && m.trim() !== '')) {
+      return parsed
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 function AnalyzePage() {
+  const [inputMode, setInputMode] = useState('single')
   const [message, setMessage] = useState('')
-  const [results, setResults] = useState(null)
+  const [results, setResults] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [progress, setProgress] = useState({ current: 0, total: 0 })
 
   useEffect(() => {
     // Check for example message from home page
@@ -18,39 +32,64 @@ function AnalyzePage() {
     }
   }, [])
 
+  const batchMessages = inputMode === 'batch' ? parseBatchMessages(message) : null
+
+  const handleModeChange = (mode) => {
+    setInputMode(mode)
+    setMessage('')
+    setResults([])
+  }
+
   const handleAnalyze = async () => {
-    if (!message.trim()) {
+    const messagesToAnalyze = inputMode === 'single' ? [message] : batchMessages
+    if (!messagesToAnalyze || messagesToAnalyze.length === 0) {
       alert('Please enter a message to analyze')
       return
     }
 
     setIsLoading(true)
-    setResults(null)
-    
+    setResults([])
+    setProgress({ current: 0, total: messagesToAnalyze.length })
+
     try {
-      // Run categorization (LLM call)
-      const { category, reasoning } = await categorizeMessage(message)
-      
-      // Calculate urgency (rule-based)
-      const urgency = calculateUrgency(message)
-      
-      // Get recommended action (template-based)
-      const recommendedAction = getRecommendedAction(category)
-      
-      const analysisResult = {
-        message,
-        category,
-        urgency,
-        recommendedAction,
-        reasoning,
-        timestamp: new Date().toISOString()
+      const analysisResults = []
+
+      for (let i = 0; i < messagesToAnalyze.length; i++) {
+        const currentMessage = messagesToAnalyze[i]
+        setProgress({ current: i + 1, total: messagesToAnalyze.length })
+
+        // Run categorization (LLM call)
+        const { category, requiresAction, reasoning } = await categorizeMessage(currentMessage)
+
+        // Calculate urgency (rule-based)
+        const urgency = calculateUrgency(currentMessage)
+
+        // Messages that don't need action get their own category, which maps
+        // to a "None" recommended action via the templates.
+        const finalCategory = requiresAction ? category : "No Action Needed"
+
+        // Get recommended action (template-based)
+        const recommendedAction = getRecommendedAction(finalCategory)
+
+        analysisResults.push({
+          id: crypto.randomUUID(),
+          message: currentMessage,
+          category: finalCategory,
+          urgency,
+          recommendedAction,
+          reasoning,
+          timestamp: new Date().toISOString(),
+          notes: '',
+          actionTaken: '',
+          cleared: false
+        })
       }
 
-      setResults(analysisResult)
+      setResults(analysisResults)
 
       // Save to history
       const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
-      history.push(analysisResult)
+      history.push(...analysisResults)
       localStorage.setItem('triageHistory', JSON.stringify(history))
     } catch (error) {
       console.error('Error analyzing message:', error)
@@ -62,8 +101,10 @@ function AnalyzePage() {
 
   const handleClear = () => {
     setMessage('')
-    setResults(null)
+    setResults([])
   }
+
+  const analyzeDisabled = isLoading || (inputMode === 'single' ? !message.trim() : !batchMessages)
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -74,30 +115,66 @@ function AnalyzePage() {
             Paste a customer support message below to automatically categorize and prioritize.
           </p>
 
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => handleModeChange('single')}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                inputMode === 'single' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Single Message
+            </button>
+            <button
+              onClick={() => handleModeChange('batch')}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                inputMode === 'batch' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Batch (JSON)
+            </button>
+          </div>
+
           {/* Input Section */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Customer Message
+              {inputMode === 'single' ? 'Customer Message' : 'Customer Messages (JSON array of strings)'}
             </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Paste customer message here..."
-              className="w-full border border-gray-300 rounded-lg p-3 h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder={inputMode === 'single'
+                ? 'Paste customer message here...'
+                : '["First customer message", "Second customer message"]'}
+              className="w-full border border-gray-300 rounded-lg p-3 h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
               disabled={isLoading}
             />
-            <div className="text-sm text-gray-500 mt-1">
-              {message.length} characters
-            </div>
+            {inputMode === 'single' ? (
+              <div className="text-sm text-gray-500 mt-1">
+                {message.length} characters
+              </div>
+            ) : (
+              <div className={`text-sm mt-1 ${
+                !message.trim() ? 'text-gray-500' : batchMessages ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {!message.trim()
+                  ? 'Enter a JSON array of message strings'
+                  : batchMessages
+                    ? `✓ ${batchMessages.length} message${batchMessages.length === 1 ? '' : 's'} ready to analyze`
+                    : 'Invalid JSON — must be a non-empty array of strings'}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-3">
             <button
               onClick={handleAnalyze}
-              disabled={isLoading}
+              disabled={analyzeDisabled}
               className={`flex-1 py-3 rounded-lg font-semibold ${
-                isLoading
+                analyzeDisabled
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
@@ -108,7 +185,7 @@ function AnalyzePage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Analyzing...
+                  {progress.total > 1 ? `Analyzing ${progress.current} of ${progress.total}...` : 'Analyzing...'}
                 </span>
               ) : (
                 'Analyze Message'
@@ -125,60 +202,10 @@ function AnalyzePage() {
         </div>
 
         {/* Results Section */}
-        {results && (
+        {results.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
-                <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
-                  {results.category}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
-                <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
-                  results.urgency === 'High' ? 'bg-red-200 text-red-900' :
-                  results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
-                  'bg-green-200 text-green-900'
-                }`}>
-                  {results.urgency}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Recommended Action</div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-gray-800">{results.recommendedAction}</p>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">AI Reasoning</div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    <ReactMarkdown>
-                      {results.reasoning}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRecommendation: ${results.recommendedAction}\n\nReasoning: ${results.reasoning}`
-                  navigator.clipboard.writeText(text)
-                  alert('Results copied to clipboard!')
-                }}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-semibold"
-              >
-                📋 Copy Results
-              </button>
-            </div>
+            <AnalysisResultsTable results={results} />
           </div>
         )}
       </div>
