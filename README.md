@@ -104,6 +104,50 @@ Can I upgrade my subscription to the pro plan?
 The dashboard won't load when I try to access it. I've tried refreshing but it keeps timing out.
 ```
 
+## Evaluating the Triage Engine
+
+The urgency scorer (`src/utils/urgencyScorer.js`) has a golden-set
+evaluation harness in `src/evals/`. Run it with:
+
+```bash
+npm run eval
+```
+
+This runs `src/evals/goldenSet.js` (32 hand-labelled customer messages
+covering terse-but-critical outages, politely-worded emergencies,
+churn/legal threats, ordinary defects, feature requests, pure praise, and
+adversarial cases where tone and true priority disagree) through
+`scoreUrgency` and reports:
+
+- **Overall accuracy** - the share of messages where the predicted
+  urgency (High/Medium/Low) matches the hand-labelled expected urgency.
+- **A confusion matrix** - expected label (rows) vs. predicted label
+  (columns), so you can see the shape of the errors, not just the count.
+- **Critical recall** - the share of *true-High* messages that were
+  actually scored High. Reported as its own headline metric, separate
+  from overall accuracy.
+- **Every individual failure**, including which signals fired (or didn't)
+  for that message, so a failing case can be diagnosed instead of guessed
+  at. See [IMPROVEMENTS.md](IMPROVEMENTS.md) for the scoring model this is
+  evaluating.
+
+### Why critical recall is tracked separately
+
+Overall accuracy treats every mistake as equally costly, and it isn't. A
+message that's actually Low scored as Medium is a minor annoyance - someone
+looks at a ticket a little sooner than necessary. A message that's actually
+High (an outage, a breach, a legal threat) scored as anything other than
+High is a missed emergency - it sits in the queue at normal priority while
+the underlying problem gets worse. A scorer that hits 90% overall accuracy
+by consistently missing real emergencies is worse than useless: a team
+trusts a number that's hiding exactly the failures they can't afford.
+Critical recall isolates that one failure mode and reports it separately
+so it can't be averaged away by getting the easy, low-stakes cases right.
+
+`npm run eval` exits non-zero if accuracy or critical recall falls below
+threshold (currently 75% and 90% respectively), so it can gate CI and
+block a regression from merging.
+
 ## Security Note
 
 ⚠️ **Warning**: This application exposes the Groq API key in the browser (using `dangerouslyAllowBrowser: true`). This is acceptable for local development only but should **NEVER** be done in production. In a real application, API calls should be made from a secure backend server.
