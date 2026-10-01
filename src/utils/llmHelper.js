@@ -5,22 +5,74 @@ import Groq from 'groq-sdk';
  * Using Groq API for AI-powered categorization
  */
 
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true // Required for browser-based calls (not recommended for production!)
-});
+// The Groq client is created lazily, on first use, and only when a key is
+// configured. Constructing it eagerly at module load throws when
+// VITE_GROQ_API_KEY is unset, which crashes the whole app bundle before
+// React can render anything - breaking the documented mock-mode fallback.
+let groq = null;
+
+function getGroqClient() {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (!apiKey) return null;
+  if (!groq) {
+    groq = new Groq({
+      apiKey,
+      dangerouslyAllowBrowser: true // Required for browser-based calls (not recommended for production!)
+    });
+  }
+  return groq;
+}
+
+const CATEGORY_KEYWORD_RULES = [
+  ['Billing Issue', ['billing']],
+  ['Technical Problem', ['technical', 'bug']],
+  ['Feature Request', ['feature']],
+  ['General Inquiry', ['inquiry', 'question']],
+];
+
+/**
+ * Parses a category out of the LLM's freeform response text.
+ *
+ * Exported standalone (rather than inlined in categorizeMessage) so it can
+ * be unit-tested with fabricated response strings, independent of a live
+ * Groq call.
+ *
+ * @param {string} content - The LLM's raw response text
+ * @returns {{category: string, confidence: 'high'|'low'}}
+ */
+export function parseCategoryFromResponse(content) {
+  const lower = content.toLowerCase();
+  const matchedCategories = CATEGORY_KEYWORD_RULES
+    .filter(([, keywords]) => keywords.some(keyword => lower.includes(keyword)))
+    .map(([category]) => category);
+
+  if (matchedCategories.length === 1) {
+    return { category: matchedCategories[0], confidence: 'high' };
+  }
+  if (matchedCategories.length === 0) {
+    return { category: 'Unknown', confidence: 'low' };
+  }
+  // The response touched more than one category's keywords - genuinely
+  // ambiguous. Keep the highest-priority guess but flag it low-confidence
+  // rather than silently presenting it as a clean match.
+  return { category: matchedCategories[0], confidence: 'low' };
+}
 
 /**
  * Categorize a customer support message using Groq AI
- * 
+ *
  * @param {string} message - The customer support message
- * @returns {Promise<{category: string, reasoning: string}>}
+ * @returns {Promise<{category: string, reasoning: string, source: 'ai'|'mock', confidence: 'high'|'low'}>}
  */
 export async function categorizeMessage(message) {
+  const client = getGroqClient();
+  if (!client) {
+    return getMockCategorization(message);
+  }
+
   try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await client.chat.completions.create({
+      model: "openai/gpt-oss-20b",
       messages: [
         {
           role: "user",
@@ -31,24 +83,13 @@ export async function categorizeMessage(message) {
     });
 
     const content = response.choices[0].message.content;
-    
-    const lines = content.split('\n');
-    let category = "Unknown";
-    let reasoning = content;
-    
-    if (content.toLowerCase().includes('billing')) {
-      category = "Billing Issue";
-    } else if (content.toLowerCase().includes('technical') || content.toLowerCase().includes('bug')) {
-      category = "Technical Problem";
-    } else if (content.toLowerCase().includes('feature')) {
-      category = "Feature Request";
-    } else if (content.toLowerCase().includes('inquiry') || content.toLowerCase().includes('question')) {
-      category = "General Inquiry";
-    }
-    
+    const { category, confidence } = parseCategoryFromResponse(content);
+
     return {
       category,
-      reasoning: content
+      reasoning: content,
+      source: 'ai',
+      confidence
     };
   } catch (error) {
     console.warn('Groq API failed, using mock response:', error.message);
@@ -61,7 +102,7 @@ export async function categorizeMessage(message) {
  */
 function getMockCategorization(message) {
   const lowerMessage = message.toLowerCase();
-  
+
   // Array of possible reasoning variations for each category
   const reasoningVariations = {
     billing: [
@@ -94,37 +135,41 @@ function getMockCategorization(message) {
       "This message doesn't contain clear indicators for automatic categorization. Human review recommended.",
     ]
   };
-  
+
   // Helper to get random reasoning
   const getRandomReasoning = (category) => {
     const reasons = reasoningVariations[category];
     return reasons[Math.floor(Math.random() * reasons.length)];
   };
-  
+
   // Billing-related detection
-  if (lowerMessage.includes('bill') || lowerMessage.includes('payment') || 
+  if (lowerMessage.includes('bill') || lowerMessage.includes('payment') ||
       lowerMessage.includes('charge') || lowerMessage.includes('invoice') ||
       lowerMessage.includes('credit card') || lowerMessage.includes('subscription') ||
       lowerMessage.includes('refund') || lowerMessage.includes('cancel') && lowerMessage.includes('account')) {
     return {
       category: "Billing Issue",
-      reasoning: getRandomReasoning('billing')
+      reasoning: getRandomReasoning('billing'),
+      source: 'mock',
+      confidence: 'high'
     };
   }
-  
+
   // Technical problem detection
-  if (lowerMessage.includes('bug') || lowerMessage.includes('error') || 
+  if (lowerMessage.includes('bug') || lowerMessage.includes('error') ||
       lowerMessage.includes('broken') || lowerMessage.includes('not working') ||
-      lowerMessage.includes('crash') || lowerMessage.includes('down') || 
+      lowerMessage.includes('crash') || lowerMessage.includes('down') ||
       lowerMessage.includes('server') || lowerMessage.includes('loading') ||
       lowerMessage.includes('slow') || lowerMessage.includes('issue') ||
       lowerMessage.includes('problem') && !lowerMessage.includes('no problem')) {
     return {
       category: "Technical Problem",
-      reasoning: getRandomReasoning('technical')
+      reasoning: getRandomReasoning('technical'),
+      source: 'mock',
+      confidence: 'high'
     };
   }
-  
+
   // Feature request detection
   if (lowerMessage.includes('feature') || lowerMessage.includes('add') && (lowerMessage.includes('please') || lowerMessage.includes('could')) ||
       lowerMessage.includes('improve') || lowerMessage.includes('would like to see') ||
@@ -133,33 +178,42 @@ function getMockCategorization(message) {
       lowerMessage.includes('enhancement') || lowerMessage.includes('would be great')) {
     return {
       category: "Feature Request",
-      reasoning: getRandomReasoning('feature')
+      reasoning: getRandomReasoning('feature'),
+      source: 'mock',
+      confidence: 'high'
     };
   }
-  
+
   // Positive feedback detection
   if ((lowerMessage.includes('thank') || lowerMessage.includes('thanks') || lowerMessage.includes('appreciate')) &&
       !lowerMessage.includes('but') && !lowerMessage.includes('however')) {
     return {
       category: "General Inquiry",
-      reasoning: getRandomReasoning('positive')
+      reasoning: getRandomReasoning('positive'),
+      source: 'mock',
+      confidence: 'high'
     };
   }
-  
+
   // Question/inquiry detection
-  if (lowerMessage.includes('how') || lowerMessage.includes('what') || 
+  if (lowerMessage.includes('how') || lowerMessage.includes('what') ||
       lowerMessage.includes('when') || lowerMessage.includes('where') ||
       lowerMessage.includes('can i') || lowerMessage.includes('is there') ||
       lowerMessage.includes('?')) {
     return {
       category: "General Inquiry",
-      reasoning: getRandomReasoning('inquiry')
+      reasoning: getRandomReasoning('inquiry'),
+      source: 'mock',
+      confidence: 'high'
     };
   }
-  
-  // Fallback for ambiguous messages
+
+  // Fallback for ambiguous messages - the mock heuristics found no clear
+  // signal at all, so this is a guess, not a confident match.
   return {
     category: "General Inquiry",
-    reasoning: getRandomReasoning('ambiguous')
+    reasoning: getRandomReasoning('ambiguous'),
+    source: 'mock',
+    confidence: 'low'
   };
 }

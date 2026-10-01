@@ -26,11 +26,14 @@ function HistoryPage() {
     a.message.localeCompare(b.message)
   )
   
-  const filteredHistory = filter === 'all' 
-    ? sortedHistory 
-    : sortedHistory.filter(item => item.category === filter)
+  const filteredHistory = filter === 'all'
+    ? sortedHistory
+    : filter === 'needsReview'
+      ? sortedHistory.filter(item => item.needsReview)
+      : sortedHistory.filter(item => item.category === filter)
 
   const categories = [...new Set(history.map(item => item.category))]
+  const needsReviewCount = history.filter(item => item.needsReview).length
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -77,6 +80,18 @@ function HistoryPage() {
                   {category} ({history.filter(h => h.category === category).length})
                 </button>
               ))}
+              {needsReviewCount > 0 && (
+                <button
+                  onClick={() => setFilter('needsReview')}
+                  className={`px-4 py-2 rounded-lg font-semibold ${
+                    filter === 'needsReview'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                  }`}
+                >
+                  🔎 Needs Review ({needsReviewCount})
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -127,6 +142,18 @@ function HistoryPage() {
                       }`}>
                         {item.urgency} Urgency
                       </span>
+                      {item.source && (
+                        <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                          item.source === 'ai' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-200 text-gray-700'
+                        }`}>
+                          {item.source === 'ai' ? '⚡ Live AI' : '📴 Offline fallback'}
+                        </span>
+                      )}
+                      {item.needsReview && (
+                        <span className="text-xs bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-semibold">
+                          🔎 Needs Review
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="text-gray-400 ml-4">

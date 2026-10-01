@@ -5,7 +5,9 @@ function DashboardPage() {
     total: 0,
     today: 0,
     highUrgencyPercent: 0,
-    avgPerDay: 0
+    avgPerDay: 0,
+    liveAiPercent: 0,
+    needsReviewCount: 0
   })
   const [categoryData, setCategoryData] = useState([])
   const [urgencyData, setUrgencyData] = useState({ High: 0, Medium: 0, Low: 0 })
@@ -24,12 +26,16 @@ function DashboardPage() {
     // Calculate stats
     const highUrgency = history.filter(h => h.urgency === 'High').length
     const totalDays = history.length > 0 ? 7 : 1
-    
+    const liveAiCount = history.filter(h => h.source === 'ai').length
+    const needsReviewCount = history.filter(h => h.needsReview).length
+
     setStats({
       total: history.length,
       today: todayMessages.length,
       highUrgencyPercent: history.length > 0 ? Math.round((highUrgency / history.length) * 100) : 0,
-      avgPerDay: Math.round(history.length / totalDays)
+      avgPerDay: Math.round(history.length / totalDays),
+      liveAiPercent: history.length > 0 ? Math.round((liveAiCount / history.length) * 100) : 0,
+      needsReviewCount
     })
 
     // Category distribution
@@ -56,7 +62,7 @@ function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm text-gray-600 mb-1">Total Messages</div>
             <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
@@ -72,6 +78,14 @@ function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm text-gray-600 mb-1">Avg Per Day</div>
             <div className="text-3xl font-bold text-purple-600">{stats.avgPerDay}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Live AI %</div>
+            <div className="text-3xl font-bold text-indigo-600">{stats.liveAiPercent}%</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600 mb-1">Needs Review</div>
+            <div className="text-3xl font-bold text-amber-600">{stats.needsReviewCount}</div>
           </div>
         </div>
 
@@ -146,6 +160,12 @@ function DashboardPage() {
             )}
             {stats.today > 10 && (
               <p>📈 High activity today with {stats.today} messages analyzed</p>
+            )}
+            {stats.total > 0 && stats.liveAiPercent < 80 && (
+              <p>📴 Only {stats.liveAiPercent}% of analyses used live AI - the rest ran on the offline fallback. Check your Groq API key and rate limits.</p>
+            )}
+            {stats.needsReviewCount > 0 && (
+              <p>🔎 {stats.needsReviewCount} message{stats.needsReviewCount === 1 ? '' : 's'} flagged for human review before routing</p>
             )}
             {stats.total === 0 && (
               <p>👋 Start by analyzing some messages to see insights here</p>

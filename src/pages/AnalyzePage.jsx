@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { categorizeMessage } from '../utils/llmHelper'
 import { calculateUrgency } from '../utils/urgencyScorer'
-import { getRecommendedAction } from '../utils/templates'
+import { getRecommendedAction, shouldEscalate } from '../utils/templates'
 
 function AnalyzePage() {
   const [message, setMessage] = useState('')
@@ -29,20 +29,27 @@ function AnalyzePage() {
     
     try {
       // Run categorization (LLM call)
-      const { category, reasoning } = await categorizeMessage(message)
-      
+      const { category, reasoning, source, confidence } = await categorizeMessage(message)
+
       // Calculate urgency (rule-based)
       const urgency = calculateUrgency(message)
-      
+
       // Get recommended action (template-based)
       const recommendedAction = getRecommendedAction(category)
-      
+
+      // Flag low-confidence, unknown, or fallback-sourced high-urgency
+      // results for a human to glance at before they're auto-routed
+      const needsReview = shouldEscalate({ category, urgency, source, confidence })
+
       const analysisResult = {
         message,
         category,
         urgency,
         recommendedAction,
         reasoning,
+        source,
+        confidence,
+        needsReview,
         timestamp: new Date().toISOString()
       }
 
@@ -128,7 +135,20 @@ function AnalyzePage() {
         {results && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-            
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                results.source === 'ai' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-200 text-gray-700'
+              }`}>
+                {results.source === 'ai' ? '⚡ Live AI' : '📴 Offline fallback'}
+              </div>
+              {results.needsReview && (
+                <div className="inline-block bg-amber-100 text-amber-900 px-4 py-2 rounded-lg font-semibold">
+                  🔎 Flagged for human review
+                </div>
+              )}
+            </div>
+
             <div className="space-y-4">
               <div>
                 <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
