@@ -44,7 +44,7 @@ Support teams waste time manually reading and triaging customer messages. This t
    
    Edit `.env.local` and add your Groq API key:
    ```
-   VITE_GROQ_API_KEY=gsk_your-actual-key-here
+   GROQ_API_KEY=gsk_your-actual-key-here
    ```
    
    Get your FREE API key from: https://console.groq.com/keys
@@ -56,7 +56,7 @@ Support teams waste time manually reading and triaging customer messages. This t
    npm run dev
    ```
    
-   The app will be available at `http://localhost:5173`
+   This starts both the frontend and the server-side API. The app will be available at `http://localhost:5173`.
 
 ## How It Works
 
@@ -106,7 +106,7 @@ The dashboard won't load when I try to access it. I've tried refreshing but it k
 
 ## Security Note
 
-⚠️ **Warning**: This application exposes the Groq API key in the browser (using `dangerouslyAllowBrowser: true`). This is acceptable for local development only but should **NEVER** be done in production. In a real application, API calls should be made from a secure backend server.
+The Groq API key is read by the Node server from `GROQ_API_KEY`. The browser sends customer messages to `/api/categorize`; it does not receive the Groq API key or call Groq directly. Keep `.env.local` private and never commit it.
 
 ## Why Groq?
 

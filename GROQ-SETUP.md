@@ -36,11 +36,11 @@ Once logged in:
 3. Add your key:
 
 ```
-VITE_GROQ_API_KEY=gsk_your-actual-key-here
+GROQ_API_KEY=gsk_your-actual-key-here
 ```
 
 4. Save the file
-5. Restart the dev server:
+5. Restart the dev server and API:
 
 ```bash
 npm run dev
@@ -61,9 +61,10 @@ npm run dev
 **Problem**: The app can't find your API key
 
 **Solution**:
-- Make sure file is named `.env.local` (not `.env`)
+- Make sure the file is named `.env.local` (not `.env`)
 - Check that the key starts with `gsk_`
-- Restart the dev server after adding the key
+- Check that the variable is named `GROQ_API_KEY` without a `VITE_` prefix
+- Restart the dev server and API after adding the key
 - Make sure there are no extra spaces in the file
 
 ### "Rate limit exceeded" Error
@@ -83,7 +84,7 @@ npm run dev
 - Regenerate a new key at https://console.groq.com/keys
 - Delete the old key
 - Update `.env.local` with the new key
-- Restart dev server
+- Restart the dev server and API
 
 ## Mock Mode (No API Key Needed)
 
