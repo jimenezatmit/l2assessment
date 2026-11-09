@@ -55,7 +55,7 @@ function HomePage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Link
             to="/analyze"
             className="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-700 transition"
@@ -85,11 +85,31 @@ function HomePage() {
               localStorage.setItem('exampleMessage', random)
               window.location.href = '/analyze'
             }}
-            className="bg-orange-600 text-white rounded-lg p-6 hover:bg-orange-700 transition"
+            className="bg-orange-600 text-white rounded-lg p-6 hover:bg-orange-700 transition text-left"
           >
             <div className="text-2xl mb-2">🎯</div>
             <div className="font-semibold mb-1">Try Example</div>
             <div className="text-sm text-orange-100">Use a sample message</div>
+          </button>
+
+          {/* Load 20-ticket representative evaluation from customer_support_tickets.csv into localStorage so history and dashboard reflect real test data */}
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/evaluation-sample.json')
+                const evaluatedSample = await response.json()
+                localStorage.setItem('triageHistory', JSON.stringify(evaluatedSample))
+                window.location.href = '/dashboard'
+              } catch (err) {
+                console.error('Failed to load evaluation sample:', err)
+                alert('Could not load evaluation sample data.')
+              }
+            }}
+            className="bg-teal-600 text-white rounded-lg p-6 hover:bg-teal-700 transition text-left"
+          >
+            <div className="text-2xl mb-2">🧪</div>
+            <div className="font-semibold mb-1">Load CSV Sample</div>
+            <div className="text-sm text-teal-100">20 evaluated tickets</div>
           </button>
         </div>
 

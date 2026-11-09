@@ -1,0 +1,342 @@
+[
+  {
+    "ticketId": "1",
+    "csvType": "Technical issue",
+    "csvPriority": "Critical",
+    "message": "[Technical issue - Product setup] Product setup: I'm having an issue with the {product_purchased}. Please assist.\nYour billing zip code is: 71701.\nWe appr...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports a problem setting up the purchased product, mentions they\u2019ve already tried troubleshooting steps from the manual,...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "3",
+    "csvType": "Technical issue",
+    "csvPriority": "Low",
+    "message": "[Technical issue - Network problem] Network problem: I'm facing a problem with my {product_purchased}. The {product_purchased} is not turning on. It was wor...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": false,
+    "reasoning": "Technical Problem  \nThe user reports that their purchased product won\u2019t turn on and isn\u2019t charging properly, indicating a malfunction or hardware issu...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "4",
+    "csvType": "Billing inquiry",
+    "csvPriority": "Low",
+    "message": "[Billing inquiry - Account access] Account access: I'm having an issue with the {product_purchased}. Please assist.\nIf you have a problem you're interested...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports being unable to access their account and says the issue remains unresolved despite previous support attempts, ind...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "6",
+    "csvType": "Cancellation request",
+    "csvPriority": "Low",
+    "message": "[Cancellation request - Payment issue] Payment issue: I'm facing a problem with my {product_purchased}. The {product_purchased} is not turning on. It was worki...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user is describing that their purchased product is not turning on and is unresponsive, which indicates a malfunction or techni...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "7",
+    "csvType": "Product inquiry",
+    "csvPriority": "Critical",
+    "message": "[Product inquiry - Refund request] Refund request: I'm unable to access my {product_purchased} account. It keeps displaying an 'Invalid Credentials' error,...",
+    "category": "Technical Problem",
+    "urgency": "High",
+    "recommendedAction": "Escalate immediately to on-call engineering / incident response team.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user is experiencing an \u201cInvalid Credentials\u201d error and cannot access their account, indicating a login/access issue that requ...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "8",
+    "csvType": "Refund request",
+    "csvPriority": "Critical",
+    "message": "[Refund request - Battery life] Battery life: I'm having an issue with the {product_purchased}. Please assist. (Thanks) I will contact all my suppliers ...",
+    "category": "Technical Problem",
+    "urgency": "Low",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe message describes a malfunction (poor battery life) with the purchased product and mentions attempted troubleshooting (factory...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "11",
+    "csvType": "Cancellation request",
+    "csvPriority": "High",
+    "message": "[Cancellation request - Data loss] Data loss: I'm having an issue with the {product_purchased}. Please assist. 1-800-799-0808.\nProduct Search: What's New i...",
+    "category": "Technical Problem",
+    "urgency": "High",
+    "recommendedAction": "Escalate immediately to on-call engineering / incident response team.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe message reports issues with the product, including data loss and improper charging, indicating functional problems that need t...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "12",
+    "csvType": "Product inquiry",
+    "csvPriority": "High",
+    "message": "[Product inquiry - Software bug] Software bug: I'm having an issue with the {product_purchased}. Please assist.\n4. It is possible that we cannot find som...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports a software bug and mentions that troubleshooting steps did not resolve the issue, indicating a problem with the p...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "15",
+    "csvType": "Billing inquiry",
+    "csvPriority": "High",
+    "message": "[Billing inquiry - Product setup] Product setup: I'm having an issue with the {product_purchased}. Please assist.\nProduct Name: TPUBASK3E3KQ0\nJoin Date: O...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports a malfunction with their product that began after a firmware update, indicating a technical issue rather than bil...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "20",
+    "csvType": "Refund request",
+    "csvPriority": "Low",
+    "message": "[Refund request - Software bug] Software bug: I'm having an issue with the {product_purchased}. Please assist.\nI'm having an issue with the product_purc...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe message describes a software bug and difficulty using the purchased product, indicating a technical issue rather than billing,...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "21",
+    "csvType": "Refund request",
+    "csvPriority": "High",
+    "message": "[Refund request - Payment issue] Payment issue: I'm having an issue with the {product_purchased}. Please assist.\n\" -name \"Microsoft Surface Pro. \"\n\" -ver...",
+    "category": "Billing Issue",
+    "urgency": "Medium",
+    "recommendedAction": "Direct user to self-service billing portal and verify invoice history.",
+    "escalate": true,
+    "reasoning": "Billing Issue  \nThe user explicitly states a \u201cPayment issue,\u201d indicating a problem related to billing or payment for the product.",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "22",
+    "csvType": "Cancellation request",
+    "csvPriority": "Critical",
+    "message": "[Cancellation request - Installation support] Installation support: I'm having an issue with the {product_purchased}. Please assist.\nThe email address should change t...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe customer reports an installation issue with the purchased product and asks for assistance, indicating a problem with the produ...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "23",
+    "csvType": "Cancellation request",
+    "csvPriority": "Medium",
+    "message": "[Cancellation request - Delivery problem] Delivery problem: I'm having an issue with the {product_purchased}. Please assist. (And if need be this time, that could...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports an intermittent issue with the purchased product and requests an update to a newer version, indicating a problem ...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "26",
+    "csvType": "Product inquiry",
+    "csvPriority": "Medium",
+    "message": "[Product inquiry - Refund request] Refund request: My {product_purchased} is making strange noises and not functioning properly. I suspect there might be a...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": false,
+    "reasoning": "Technical Problem  \nThe message describes a malfunctioning product that makes strange noises and does not work properly, indicating a hardware issue t...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "32",
+    "csvType": "Technical issue",
+    "csvPriority": "Medium",
+    "message": "[Technical issue - Product compatibility] Product compatibility: I'm having an issue with the {product_purchased}. Please assist.\nThe seller has sold the item for...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe customer reports a compatibility issue with the purchased product and mentions unresolved problems despite prior support conta...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "33",
+    "csvType": "Billing inquiry",
+    "csvPriority": "Medium",
+    "message": "[Billing inquiry - Product recommendation] Product recommendation: I've noticed a software bug in the {product_purchased} app. It's causing data loss and unexpecte...",
+    "category": "Technical Problem",
+    "urgency": "High",
+    "recommendedAction": "Escalate immediately to on-call engineering / incident response team.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe user reports a software bug in the purchased app that causes data loss and errors, seeking immediate help to resolve the issue...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "37",
+    "csvType": "Refund request",
+    "csvPriority": "Medium",
+    "message": "[Refund request - Hardware issue] Hardware issue: I'm having an issue with the {product_purchased}. Please assist. I have to ask for support from you, the...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": true,
+    "reasoning": "Technical Problem  \nThe customer reports a hardware malfunction with the purchased product, has followed troubleshooting steps, and needs assistance r...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "41",
+    "csvType": "Product inquiry",
+    "csvPriority": "Low",
+    "message": "[Product inquiry - Installation support] Installation support: I've recently set up my {product_purchased}, but it fails to connect to any available networks. Wh...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": false,
+    "reasoning": "Technical Problem  \nThe user is experiencing connection failures after installing their product and is asking for troubleshooting steps, which is a te...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "42",
+    "csvType": "Billing inquiry",
+    "csvPriority": "Critical",
+    "message": "[Billing inquiry - Product compatibility] Product compatibility: I'm facing a problem with my {product_purchased}. The {product_purchased} is not turning on. It w...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": false,
+    "reasoning": "Technical Problem  \nThe user reports that their purchased product is not turning on and behaves intermittently, indicating a malfunction rather than a...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  },
+  {
+    "ticketId": "88",
+    "csvType": "Technical issue",
+    "csvPriority": "High",
+    "message": "[Technical issue - Delivery problem] Delivery problem: I'm facing a problem with my {product_purchased}. The {product_purchased} is not turning on. It was wo...",
+    "category": "Technical Problem",
+    "urgency": "Medium",
+    "recommendedAction": "Provide standard troubleshooting guide and request device/system details.",
+    "escalate": false,
+    "reasoning": "Technical Problem  \nThe customer reports that their purchased product has stopped functioning (won\u2019t turn on) and needs assistance troubleshooting the...",
+    "api": {
+      "source": "groq",
+      "model": "openai/gpt-oss-120b",
+      "error": null
+    },
+    "timestamp": "2026-11-09T16:17:59.958Z"
+  }
+]
